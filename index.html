@@ -1,0 +1,955 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>The Selector Transfer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+  /* Layout: instrument bench — the lattice stage is the subject, controls and readouts beneath it. */
+  :root{
+    --bg:#E7EAE9; --surface:#FBFCFB; --surface-2:#DDE2E1; --stage:#F4F6F5;
+    --ink:#161A19; --ink-2:#4F5A58; --ink-3:#8793906b;
+    --rule:#C3CBC9; --rule-2:#AEB8B6;
+    --porous:#1F6F80; --porous-soft:#CFE2E6;
+    --inverted:#A0561A; --inverted-soft:#EEDFCD;
+    --warn:#95261F;
+    --font-display:"IBM Plex Serif",Georgia,serif;
+    --font-body:"IBM Plex Sans",system-ui,sans-serif;
+    --font-data:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+    --bg:#0F1413; --surface:#171D1C; --surface-2:#202826; --stage:#121817;
+    --ink:#E4E9E7; --ink-2:#97A3A0; --ink-3:#6b777460;
+    --rule:#2C3634; --rule-2:#3D4947;
+    --porous:#63BACB; --porous-soft:#17333A;
+    --inverted:#DCA066; --inverted-soft:#3A2715;
+    --warn:#DF6B62; color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0F1413; --surface:#171D1C; --surface-2:#202826; --stage:#121817;
+    --ink:#E4E9E7; --ink-2:#97A3A0; --ink-3:#6b777460;
+    --rule:#2C3634; --rule-2:#3D4947;
+    --porous:#63BACB; --porous-soft:#17333A;
+    --inverted:#DCA066; --inverted-soft:#3A2715;
+    --warn:#DF6B62; color-scheme:dark;
+  }
+
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5;
+       -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1140px;margin:0 auto;padding-inline:18px;padding-block:28px 48px}
+
+  h1{font-family:var(--font-display);font-weight:600;font-size:clamp(28px,5vw,42px);line-height:1.04;
+     letter-spacing:-.015em;margin:0;text-wrap:balance}
+  .sub{font-family:var(--font-display);font-style:italic;color:var(--ink-2);margin:.5rem 0 0;max-width:62ch}
+  .eyebrow{font-family:var(--font-data);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+           color:var(--ink-2);margin:0 0 .6rem}
+  header{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;justify-content:space-between;
+         border-bottom:1px solid var(--rule);padding-bottom:20px}
+  .custody-badge{font-family:var(--font-data);font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+    border:1px solid currentColor;border-radius:2px;padding:7px 11px;white-space:nowrap;display:flex;gap:9px;align-items:center}
+  .custody-badge b{font-weight:600;letter-spacing:.1em}
+  .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+  .is-porous{color:var(--porous)} .is-inverted{color:var(--inverted)}
+
+  section{margin-top:28px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:11px;flex-wrap:wrap}
+  .sec-head h2{font-family:var(--font-data);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    font-weight:600;margin:0;color:var(--ink-2)}
+  .sec-head .hint{font-size:13px;color:var(--ink-2);min-width:0;margin:0}
+
+  /* ---- stage ---- */
+  .stage-wrap{position:relative;border:1px solid var(--rule);border-radius:3px;background:var(--stage);overflow:hidden}
+  #stage{display:block;width:100%;height:clamp(320px,52vw,470px)}
+  .stage-key{position:absolute;left:12px;bottom:10px;font-family:var(--font-data);font-size:10.5px;
+    letter-spacing:.05em;color:var(--ink-2);display:flex;flex-wrap:wrap;gap:4px 14px;max-width:calc(100% - 24px)}
+  .stage-key i{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:-1px;margin-right:5px}
+  .stage-state{position:absolute;right:12px;top:10px;font-family:var(--font-data);font-size:10.5px;
+    letter-spacing:.1em;text-transform:uppercase;text-align:right;line-height:1.7}
+  .stage-state b{font-weight:600}
+
+  .terms{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+  @media (max-width:800px){.terms{grid-template-columns:1fr}}
+  .term{background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:12px 13px;
+        min-width:0;position:relative;transition:border-color .35s,box-shadow .35s}
+  .term .tname{font-family:var(--font-data);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+  .term .trole{font-family:var(--font-data);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+               color:var(--ink-2);margin-top:3px}
+  .term .tnote{font-size:12.5px;color:var(--ink-2);margin-top:8px}
+  .term.holds{border-color:currentColor;box-shadow:inset 0 0 0 1px currentColor}
+  .term.holds .tname,.term.holds .trole{color:currentColor}
+  .holder-chip{position:absolute;top:-9px;right:12px;font-family:var(--font-data);font-size:10px;
+    letter-spacing:.14em;text-transform:uppercase;background:var(--surface);border:1px solid currentColor;
+    border-radius:2px;padding:2px 7px;font-weight:600}
+
+  /* ---- beam ---- */
+  .beam{background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:15px;margin-top:10px}
+  .beam-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px}
+  .bside{min-width:0}
+  .blabel{font-family:var(--font-data);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+  .bval{font-family:var(--font-data);font-size:20px;font-variant-numeric:tabular-nums;font-weight:500;margin-top:1px}
+  .btrack{height:13px;background:var(--surface-2);border-radius:2px;margin-top:7px;overflow:hidden;display:flex}
+  .btrack i{height:100%;transition:width .25s}
+  .r-left .btrack{justify-content:flex-end}
+  .r-left .btrack i{background:var(--inverted)}
+  .r-right .btrack i{background:var(--porous)}
+  .fulcrum{font-family:var(--font-data);font-size:10px;letter-spacing:.1em;text-align:center;color:var(--ink-2);
+           border-left:2px solid var(--rule-2);border-right:2px solid var(--rule-2);padding:0 9px;align-self:stretch;
+           display:flex;align-items:center}
+  .r-right{text-align:right}
+
+  /* ---- controls ---- */
+  .panels{display:grid;grid-template-columns:1.15fr .85fr;gap:10px}
+  @media (max-width:880px){.panels{grid-template-columns:1fr}}
+  .panel{background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:15px}
+  .panel h3{font-family:var(--font-data);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin:0 0 2px;font-weight:600}
+  .panel .pnote{font-size:12.5px;color:var(--ink-2);margin:0 0 12px}
+  .ctrl{margin-bottom:13px}
+  .ctrl:last-child{margin-bottom:0}
+  .ctrl label{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:13.5px;margin-bottom:5px}
+  .ctrl label span.v{font-family:var(--font-data);font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+  .ctrl .ends{display:flex;justify-content:space-between;font-family:var(--font-data);font-size:10px;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);margin-top:2px}
+  input[type=range]{width:100%;margin:0;accent-color:var(--ink)}
+  .seg{display:flex;flex-wrap:wrap;gap:6px}
+  .seg button{font-family:var(--font-data);font-size:11.5px;letter-spacing:.04em;padding:7px 10px;
+    background:var(--surface-2);color:var(--ink);border:1px solid var(--rule);border-radius:2px;cursor:pointer}
+  .seg button[aria-pressed=true]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+  .seg button:focus-visible,.btn:focus-visible,.chip:focus-visible{outline:2px solid var(--porous);outline-offset:2px}
+  .policy-note{font-size:12.5px;color:var(--ink-2);margin-top:9px;min-height:3.9em}
+  .runrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px}
+  .btn{font-family:var(--font-data);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;
+    padding:8px 12px;border:1px solid var(--rule-2);background:var(--surface-2);color:var(--ink);border-radius:2px;cursor:pointer}
+  .btn.primary{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+  .btn.danger{color:var(--warn);border-color:var(--warn)}
+
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:1px;background:var(--rule);
+         border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+  .tile{background:var(--surface);padding:11px 12px;min-width:0}
+  .tile .k{font-family:var(--font-data);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+  .tile .n{font-family:var(--font-data);font-size:19px;font-variant-numeric:tabular-nums;margin-top:3px;font-weight:500}
+
+  #chart{display:block;width:100%;height:170px;border:1px solid var(--rule);border-radius:3px;background:var(--surface)}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-family:var(--font-data);font-size:11px;color:var(--ink-2);margin-top:8px}
+  .legend i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:5px}
+
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:800px){.twocol{grid-template-columns:1fr}}
+  .log{background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:12px 13px;
+       font-family:var(--font-data);font-size:12px;min-height:214px}
+  .log div{padding:3px 0;border-bottom:1px dotted var(--rule);display:flex;gap:9px;min-width:0}
+  .log div:last-child{border-bottom:0}
+  .log .cyc{color:var(--ink-2);flex:none;font-variant-numeric:tabular-nums}
+  .log .what{min-width:0}
+  .k-filed{color:var(--porous)} .k-placed{color:var(--inverted)} .k-rejected{color:var(--ink-2)}
+  .k-event{color:var(--ink);font-weight:600} .k-bad{color:var(--warn);font-weight:600}
+
+  .flags{display:flex;flex-direction:column;gap:7px}
+  .flag{border:1px solid var(--rule);border-left:3px solid var(--rule-2);border-radius:2px;padding:9px 11px;
+        background:var(--surface);font-size:13px}
+  .flag b{font-family:var(--font-data);font-size:11px;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:2px}
+  .flag.on{border-left-color:var(--warn)} .flag.on b{color:var(--warn)}
+  .flag.ok{border-left-color:var(--inverted)} .flag.ok b{color:var(--inverted)}
+  .flag.idle{opacity:.5}
+
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{text-align:left;background:var(--surface);border:1px solid var(--rule);border-radius:2px;padding:9px 11px;
+        cursor:pointer;color:var(--ink);max-width:258px}
+  .chip b{display:block;font-family:var(--font-data);font-size:11.5px;letter-spacing:.06em;margin-bottom:2px}
+  .chip span{font-size:12.5px;color:var(--ink-2);line-height:1.35}
+  .chip:hover{border-color:var(--rule-2)}
+
+  footer{margin-top:32px;padding-top:18px;border-top:1px solid var(--rule);color:var(--ink-2);font-size:13.5px;max-width:70ch}
+  footer em{font-family:var(--font-display)}
+  @media (prefers-reduced-motion:reduce){.btrack i,.term{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <p class="eyebrow">Lattice bench · compute → interface → algorithm</p>
+      <h1>The Selector Transfer</h1>
+      <p class="sub">Arrivals build the structure, then the structure starts ruling on arrivals. Watch the selector change hands.</p>
+    </div>
+    <div class="custody-badge is-porous" id="badge">
+      <span class="dot"></span><span>Selector held by</span><b id="badgeWho">INTERFACE</b>
+    </div>
+  </header>
+
+  <section>
+    <div class="sec-head">
+      <h2>The structure</h2>
+      <p class="hint">Particles arrive from the field. Below critical mass they accrete wherever they land and drag the lattice with them; above it, growth snaps to the lattice's own axes and non-conforming arrivals are turned away.</p>
+    </div>
+    <div class="stage-wrap">
+      <canvas id="stage" aria-label="Lattice accreting from incoming particles, then imposing its own geometry on them"></canvas>
+      <div class="stage-state" id="stageState"></div>
+      <div class="stage-key">
+        <span><i style="background:var(--porous)"></i>arrival</span>
+        <span><i style="background:var(--inverted)"></i>lattice</span>
+        <span><i style="background:var(--warn)"></i>rejected</span>
+        <span>── field axis</span>
+        <span>┄┄ lattice axes</span>
+      </div>
+    </div>
+
+    <div class="terms">
+      <div class="term" id="termC">
+        <div class="tname">Compute</div>
+        <div class="trole">Generator · rate &amp; breadth</div>
+        <div class="tnote" id="noteC">Sets how many particles arrive per cycle. Blind — it buys more arrivals, never a different verdict on one.</div>
+      </div>
+      <div class="term is-porous" id="termI">
+        <div class="holder-chip" id="chipI" hidden>selector</div>
+        <div class="tname">Interface</div>
+        <div class="trole" id="roleI">Selector · rules on arrivals</div>
+        <div class="tnote" id="noteI">The field's axis and spread decide where particles come from and which ones carry signal.</div>
+      </div>
+      <div class="term is-inverted" id="termA">
+        <div class="holder-chip" id="chipA" hidden>selector</div>
+        <div class="tname">Algorithm</div>
+        <div class="trole" id="roleA">Record · admits and is rewritten</div>
+        <div class="tnote" id="noteA">The lattice itself. Its reach times its load-bearing linkage is the weight on the internal side.</div>
+      </div>
+    </div>
+
+    <div class="beam">
+      <div class="beam-row">
+        <div class="bside r-left">
+          <div class="blabel">Internal weight · reach × linkage</div>
+          <div class="bval" id="wiVal">0.00</div>
+          <div class="btrack"><i id="wiBar"></i></div>
+        </div>
+        <div class="fulcrum">CRITICAL<br>MASS</div>
+        <div class="bside r-right">
+          <div class="blabel">Arriving weight · un-digested field</div>
+          <div class="bval" id="weVal">0.00</div>
+          <div class="btrack"><i id="weBar"></i></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Set the terms</h2><p class="hint">Changes take effect on the next cycle.</p></div>
+    <div class="panels">
+      <div class="panel">
+        <h3>Three terms</h3>
+        <p class="pnote">Each slider moves one term of the product.</p>
+        <div class="ctrl">
+          <label for="compute">Compute <span class="v" id="computeV">55</span></label>
+          <input type="range" id="compute" min="0" max="100" value="55">
+          <div class="ends"><span>stalled</span><span>flat out</span></div>
+        </div>
+        <div class="ctrl">
+          <label for="grad">Interface gradient <span class="v" id="gradV">70%</span></label>
+          <input type="range" id="grad" min="0" max="100" value="70">
+          <div class="ends"><span>all noise</span><span>sharp verdicts</span></div>
+        </div>
+        <div class="ctrl">
+          <label for="vol">Landscape volatility <span class="v" id="volV">30%</span></label>
+          <input type="range" id="vol" min="0" max="100" value="30">
+          <div class="ends"><span>stable axis</span><span>field swings</span></div>
+        </div>
+        <div class="ctrl">
+          <label for="ret">Retention as linkage <span class="v" id="retV">70%</span></label>
+          <input type="range" id="ret" min="0" max="100" value="70">
+          <div class="ends"><span>passes through</span><span>all load-bearing</span></div>
+        </div>
+        <div class="ctrl">
+          <label for="alloc">Deposit split <span class="v" id="allocV">50 / 50</span></label>
+          <input type="range" id="alloc" min="0" max="100" value="50">
+          <div class="ends"><span>all reaching</span><span>all tightening</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Custody schedule</h3>
+        <p class="pnote">When the lattice takes selection, and whether it ever gives it back.</p>
+        <div class="seg" id="policy">
+          <button data-p="weighed" aria-pressed="true">Weighed</button>
+          <button data-p="sequential" aria-pressed="false">Sequential</button>
+          <button data-p="iterative" aria-pressed="false">Iterative</button>
+          <button data-p="evolutionary" aria-pressed="false">Evolutionary</button>
+        </div>
+        <p class="policy-note" id="policyNote"></p>
+        <div class="ctrl">
+          <label for="speed">Cycles per second <span class="v" id="speedV">9</span></label>
+          <input type="range" id="speed" min="1" max="26" value="9">
+        </div>
+        <div class="runrow">
+          <button class="btn primary" id="runBtn">Pause</button>
+          <button class="btn" id="stepBtn">Step</button>
+          <button class="btn" id="resetBtn">Reset</button>
+          <button class="btn danger" id="seizeBtn">Seize selector</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Readouts</h2><p class="hint">Translation is paid by whoever does not hold the selector.</p></div>
+    <div class="tiles">
+      <div class="tile"><div class="k">Cycle</div><div class="n" id="tCycle">0</div></div>
+      <div class="tile"><div class="k">Nodes</div><div class="n" id="tNodes">0</div></div>
+      <div class="tile"><div class="k">Reach</div><div class="n" id="tScope">0%</div></div>
+      <div class="tile"><div class="k">Linkage</div><div class="n" id="tLink">0%</div></div>
+      <div class="tile"><div class="k">Mass</div><div class="n" id="tMass">0.00</div></div>
+      <div class="tile"><div class="k">Record validity</div><div class="n" id="tValid">0%</div></div>
+      <div class="tile"><div class="k">Pre-refined intake</div><div class="n" id="tPre">0%</div></div>
+      <div class="tile"><div class="k">Legibility paid by</div><div class="n" id="tPayer">SYSTEM</div></div>
+      <div class="tile"><div class="k">Placed / rejected</div><div class="n" id="tPR">0 / 0</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>History</h2><p class="hint">Shaded band marks who held the selector at that cycle.</p></div>
+    <canvas id="chart" width="900" height="170" aria-label="Mass, arriving weight and record validity over cycles"></canvas>
+    <div class="legend">
+      <span><i style="background:var(--inverted)"></i>Internal weight</span>
+      <span><i style="background:var(--porous)"></i>Arriving weight</span>
+      <span><i style="background:var(--ink-2)"></i>Record validity</span>
+      <span><i style="background:var(--inverted-soft)"></i>algorithm custody</span>
+      <span><i style="background:var(--porous-soft)"></i>interface custody</span>
+    </div>
+  </section>
+
+  <section class="twocol">
+    <div>
+      <div class="sec-head"><h2>Arrivals</h2><p class="hint">Filed, placed, or rejected — the behavioural signature.</p></div>
+      <div class="log" id="log"></div>
+    </div>
+    <div>
+      <div class="sec-head"><h2>Diagnosis</h2><p class="hint">What this configuration is doing wrong, or right.</p></div>
+      <div class="flags" id="flags"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Configurations to try</h2><p class="hint">Each loads a state the mechanism predicts.</p></div>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <footer>
+    <p>The test does not change with the schedule. <em>Put something unfamiliar in front of the system and see which side selects.</em></p>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+  var clamp = function(x,a,b){ return x<a?a:(x>b?b:x); };
+  var TAU = Math.PI*2, SIXTH = Math.PI/3;
+  var SPACING = 15, MAXNODES = 560;
+
+  var POLICIES = {
+    weighed:{ label:"Weighed", note:"No schedule. Custody follows the comparison every cycle — taken when the lattice outweighs arrivals, lost when it does not." },
+    sequential:{ label:"Sequential", note:"Take it once and keep it. Custody locks at the first crossing and never returns, so the lattice is never re-ruled on and its axes are never re-fitted." },
+    iterative:{ label:"Iterative", note:"Custody locked at the axes; a narrow slice loaned back for placement only. Frequent feedback, almost no correction to the geometry." },
+    evolutionary:{ label:"Evolutionary", note:"Custody handed back for bounded intervals. The axes get re-fitted to the field, and the pre-refined subsidy lapses while selection is away." }
+  };
+
+  var policy = "weighed", running = true, lastTs = 0, cycAcc = 0;
+  var S, L, P, FX, hist, logRows, met;
+
+  function fresh(){
+    S = { t:0, valid:0.55, pre:0, custody:"interface", locked:false, seized:false,
+          returning:false, returnEnds:0, nextReturn:55, lostOnce:false, saidPrem:false,
+          placed:0, rejected:0, filed:0 };
+    L = { nodes:[], links:[], axis:Math.random()*SIXTH };
+    P = []; FX = []; hist = []; logRows = [];
+    met = { reach:0, linkage:0, mass:0, deg:0, rMax:SPACING };
+    var cx = 0, cy = 0;
+    L.nodes.push({ x:cx, y:cy, d:0 });
+    env = { dir:Math.random()*TAU, spread:0.55 };
+  }
+  var env;
+
+  function params(){
+    return { c:+$("compute").value, g:+$("grad").value/100, v:+$("vol").value/100,
+             r:+$("ret").value/100, a:+$("alloc").value/100 };
+  }
+
+  // ---------- geometry helpers ----------
+  function foldSix(ang){ var x = ang % SIXTH; if(x<0) x += SIXTH; return x; }
+  function diffSix(a,b){ var d = Math.abs(foldSix(a)-foldSix(b)); return Math.min(d, SIXTH-d); }
+  function snapToAxis(ang){
+    var rel = ang - L.axis, k = Math.round(rel/SIXTH);
+    return L.axis + k*SIXTH;
+  }
+
+  function nearestNode(x,y){
+    var best = null, bd = 1e9;
+    for(var i=0;i<L.nodes.length;i++){
+      var n = L.nodes[i], dx = n.x-x, dy = n.y-y, d = dx*dx+dy*dy;
+      if(d < bd){ bd = d; best = n; }
+    }
+    return { n:best, d:Math.sqrt(bd) };
+  }
+
+  function addLink(a,b){
+    if(a===b) return false;
+    for(var i=0;i<L.links.length;i++){
+      var k = L.links[i];
+      if((k.a===a&&k.b===b)||(k.a===b&&k.b===a)){ k.w = Math.min(k.w+0.35, 3); return false; }
+    }
+    L.links.push({ a:a, b:b, w:1 });
+    a.d++; b.d++;
+    return true;
+  }
+
+  function measure(){
+    var n = L.nodes.length, sum = 0, mx = SPACING;
+    for(var i=0;i<n;i++){
+      var nd = L.nodes[i], q = nd.x*nd.x + nd.y*nd.y;
+      sum += q; if(q > mx*mx) mx = Math.sqrt(q);
+    }
+    met.rMax = mx;
+    var rms = Math.sqrt(sum/Math.max(n,1));
+    met.reach = rms/(rms+72);
+    met.deg = n ? (2*L.links.length)/n : 0;
+    met.linkage = clamp(met.deg/3.6, 0, 1);
+    met.mass = met.reach*met.linkage;
+  }
+
+  function arrivingWeight(){ var p = params(); return (1-S.pre)*(0.35+0.65*p.v); }
+
+  function logit(kind, text){
+    logRows.unshift({ t:S.t, kind:kind, text:text });
+    if(logRows.length>12) logRows.pop();
+  }
+  function setCustody(who, why, bad){
+    if(S.custody === who) return;
+    S.custody = who;
+    if(why) logit(bad?"bad":"event", why);
+  }
+
+  // ---------- particles ----------
+  function spawn(view){
+    var p = params();
+    var ang = env.dir + (Math.random()+Math.random()+Math.random()-1.5)*env.spread;
+    // post-transfer the field pre-filters toward the lattice's own axes
+    if(S.custody === "algorithm" && S.pre > 0.01){
+      var target = snapToAxis(ang), pull = S.pre*0.92;
+      ang = ang + (target-ang)*pull;
+    }
+    var R = view.R;
+    var signal = Math.random() < p.g;
+    P.push({
+      x:Math.cos(ang)*R, y:Math.sin(ang)*R,
+      ang:ang, sig:signal, dead:0, life:0,
+      px:Math.cos(ang)*R, py:Math.sin(ang)*R
+    });
+  }
+
+  function absorb(pt){
+    var p = params();
+    // porosity: material that is not retained passes through and deposits nothing
+    if(Math.random() > p.r){ pt.dead = 2; S.filed++; return; }
+
+    var near = nearestNode(pt.x, pt.y);
+    var tighten = p.a;
+
+    if(S.custody === "interface"){
+      // the field dictates placement: the lattice takes the shape of where arrivals land
+      var rms = Math.sqrt(pt.x*pt.x + pt.y*pt.y);
+      var limit = 72*met.reach/(1-met.reach+1e-6);
+      var tooFar = tighten > 0.5 && rms > Math.max(limit*0.85, SPACING*2.2);
+      if(near.d > SPACING*0.85 && !tooFar && L.nodes.length < MAXNODES){
+        var nn = { x:pt.x, y:pt.y, d:0 };
+        L.nodes.push(nn);
+        if(pt.sig){
+          var maxL = 1 + Math.round(tighten*3), made = 0, rad = SPACING*(1.5+tighten*1.1);
+          for(var i=L.nodes.length-2;i>=0 && made<maxL;i--){
+            var o = L.nodes[i], dx = o.x-nn.x, dy = o.y-nn.y;
+            if(Math.sqrt(dx*dx+dy*dy) < rad){ if(addLink(nn,o)) made++; }
+          }
+        }
+      } else if(pt.sig){
+        // no room to place: thicken what is already there
+        var r2 = SPACING*(1.6+tighten*1.3), made2 = 0;
+        for(var j=0;j<L.nodes.length && made2<2;j++){
+          var o2 = L.nodes[j], ddx = o2.x-near.n.x, ddy = o2.y-near.n.y;
+          var dd = Math.sqrt(ddx*ddx+ddy*ddy);
+          if(dd>0.1 && dd < r2){ addLink(near.n,o2); made2++; }
+        }
+      }
+      // arrivals drag the existing structure toward themselves — the record is rewritten
+      for(var k=0;k<L.nodes.length;k++){
+        var nd = L.nodes[k], ex = pt.x-nd.x, ey = pt.y-nd.y, de = Math.sqrt(ex*ex+ey*ey);
+        if(de < SPACING*3.4 && de > 0.01){
+          var f = 0.05*(1-de/(SPACING*3.4));
+          nd.x += ex/de*f*SPACING*0.5; nd.y += ey/de*f*SPACING*0.5;
+        }
+      }
+      // and the axes are re-fitted to the field
+      if(pt.sig){
+        var want = foldSix(pt.ang), have = foldSix(L.axis), d = want-have;
+        if(d >  SIXTH/2) d -= SIXTH;
+        if(d < -SIXTH/2) d += SIXTH;
+        L.axis += d*0.08;
+      }
+      S.filed++;
+      FX.push({ x:pt.x, y:pt.y, r:3, max:13, kind:"filed" });
+      pt.dead = 1;
+      return;
+    }
+
+    // --- algorithm custody: the lattice rules ---
+    var approach = Math.atan2(pt.y-near.n.y, pt.x-near.n.x);
+    var misfit = diffSix(approach, L.axis)/(SIXTH/2);          // 0 = on an axis, 1 = worst case
+    var conform = (1-misfit)*0.55 + (S.pre*S.valid)*0.45;
+    if(Math.random() > conform){
+      S.rejected++;
+      pt.dead = 3;
+      FX.push({ x:pt.x, y:pt.y, r:3, max:16, kind:"rejected" });
+      return;
+    }
+    // placed: growth goes where the lattice's geometry says, not where the particle came from
+    var dir = snapToAxis(approach);
+    var nx = near.n.x + Math.cos(dir)*SPACING, ny = near.n.y + Math.sin(dir)*SPACING;
+    var occ = nearestNode(nx, ny);
+    if(occ.d < SPACING*0.6){
+      addLink(near.n, occ.n);
+    } else if(L.nodes.length < MAXNODES){
+      var node = { x:nx, y:ny, d:0 };
+      L.nodes.push(node);
+      addLink(near.n, node);
+      var rad3 = SPACING*1.3, made3 = 0, maxl3 = 1 + Math.round(p.a*2);
+      for(var m=0;m<L.nodes.length-1 && made3<maxl3;m++){
+        var o3 = L.nodes[m], dx3 = o3.x-nx, dy3 = o3.y-ny;
+        if(Math.sqrt(dx3*dx3+dy3*dy3) < rad3*1.15){ if(addLink(node,o3)) made3++; }
+      }
+    } else {
+      addLink(near.n, occ.n);
+    }
+    S.placed++;
+    pt.dead = 1;
+    FX.push({ x:nx, y:ny, r:2, max:11, kind:"placed" });
+  }
+
+  // ---------- one cycle ----------
+  function cycle(){
+    var p = params();
+    S.t++;
+    measure();
+    var M = met.mass, We = arrivingWeight();
+
+    if(S.seized){
+      if(S.valid < 0.22 && S.pre < 0.1 && !S.lostOnce){
+        S.lostOnce = true; S.seized = false; S.locked = false;
+        setCustody("interface","Custody lost — the field reorganised around an unratified lattice.",true);
+      } else setCustody("algorithm");
+    } else if(policy === "weighed"){
+      S.locked = false;
+      if(M > We+0.02) setCustody("algorithm","Selector taken — the lattice outweighs arrivals.");
+      else if(M < We-0.02) setCustody("interface","Selector returned to the field — arrivals outweigh the lattice.");
+    } else {
+      if(!S.locked && M > We+0.02){
+        S.locked = true;
+        setCustody("algorithm","Crossing — custody locked under the "+POLICIES[policy].label.toLowerCase()+" schedule.");
+      }
+      if(S.locked){
+        if(S.valid < 0.22 && S.pre < 0.1 && !S.lostOnce){
+          S.lostOnce = true; S.locked = false;
+          setCustody("interface","Custody lost — the field reorganised while the axes went uncorrected.",true);
+        } else if(policy === "evolutionary"){
+          if(S.returning){
+            setCustody("interface");
+            if(S.t >= S.returnEnds){ S.returning = false; setCustody("algorithm","Selector retaken — axes re-fitted, subsidy resuming."); }
+          } else {
+            setCustody("algorithm");
+            if(S.t >= S.nextReturn){
+              S.returning = true; S.returnEnds = S.t+18; S.nextReturn = S.t+66;
+              setCustody("interface","Selector handed back for a bounded interval — paying full price for legibility again.");
+            }
+          }
+        } else setCustody("algorithm");
+      }
+    }
+
+    // field drifts; the lattice's axes only follow it while the field holds the selector
+    env.dir += (Math.random()-0.5)*0.10*p.v + 0.016*p.v;
+    env.spread = clamp(0.62 - 0.45*S.pre, 0.07, 0.8);
+
+    var align = 1 - diffSix(L.axis, env.dir)/(SIXTH/2);
+    if(S.custody === "interface"){
+      S.valid = clamp(S.valid*0.90 + align*0.10 + 0.012, 0, 1);
+      S.pre = clamp(S.pre - 0.07*S.pre, 0, 1);
+    } else {
+      var corr = (policy === "iterative") ? 0.012 : 0;
+      S.valid = clamp(S.valid*0.985 + align*0.015*(1+corr*40) - p.v*0.012, 0, 1);
+      S.pre = clamp(S.pre + 0.035*(1-S.pre)*S.valid - (1-S.valid)*0.030, 0, 1);
+    }
+
+    if(S.custody === "algorithm" && S.valid < 0.5 && !S.saidPrem){
+      S.saidPrem = true;
+      logit("bad","Premature custody — the lattice is ruling on arrivals using axes the field never ratified.");
+    }
+    if(S.valid >= 0.62) S.saidPrem = false;
+
+    if(p.c >= 3){
+      if(S.custody === "interface") logit("filed","filed — the arrival kept its own frame and dragged the lattice toward it");
+      else if(S.placed+S.rejected > 0){
+        if(Math.random() < 0.55) logit("placed","placed — snapped onto a lattice axis, no rewrite");
+        else logit("rejected", S.valid < 0.5
+          ? "rejected — off-axis, and the axes that rejected it are unratified"
+          : "rejected — off-axis, translation left to the field");
+      }
+    }
+
+    hist.push({ m:met.mass, w:We, v:S.valid, c:S.custody });
+    if(hist.length > 280) hist.shift();
+  }
+
+  // ---------- drawing ----------
+  function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  var view = { w:900, h:420, R:260, cx:450, cy:210, dpr:1 };
+
+  function sizeStage(){
+    var cv = $("stage"), dpr = Math.min(window.devicePixelRatio||1, 2);
+    var w = cv.clientWidth||900, h = cv.clientHeight||420;
+    cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr);
+    view.w = w; view.h = h; view.dpr = dpr; view.cx = w/2; view.cy = h/2;
+    view.R = Math.min(w,h)*0.46;
+  }
+
+  function drawStage(){
+    var cv = $("stage"), x = cv.getContext("2d");
+    x.setTransform(view.dpr,0,0,view.dpr,0,0);
+    x.clearRect(0,0,view.w,view.h);
+    x.fillStyle = cssVar("--stage"); x.fillRect(0,0,view.w,view.h);
+    x.save(); x.translate(view.cx, view.cy);
+
+    var alg = S.custody === "algorithm";
+    var cPor = cssVar("--porous"), cInv = cssVar("--inverted"), cWarn = cssVar("--warn");
+    var cFaint = cssVar("--ink-3"), cMut = cssVar("--ink-2");
+
+    // field band: where arrivals come from
+    x.strokeStyle = cPor; x.globalAlpha = 0.16; x.lineWidth = 16;
+    x.beginPath(); x.arc(0,0,view.R, env.dir-env.spread, env.dir+env.spread); x.stroke();
+    x.globalAlpha = 1;
+
+    // field axis
+    x.strokeStyle = cPor; x.lineWidth = 1.25; x.globalAlpha = 0.65;
+    x.beginPath(); x.moveTo(Math.cos(env.dir)*view.R, Math.sin(env.dir)*view.R); x.lineTo(0,0); x.stroke();
+    x.globalAlpha = 1;
+
+    // lattice axes, once the lattice is doing the selecting
+    if(alg){
+      x.strokeStyle = cInv; x.globalAlpha = 0.30; x.lineWidth = 1; x.setLineDash([4,5]);
+      for(var k=0;k<3;k++){
+        var a = L.axis + k*SIXTH;
+        x.beginPath();
+        x.moveTo(Math.cos(a)*view.R, Math.sin(a)*view.R);
+        x.lineTo(-Math.cos(a)*view.R, -Math.sin(a)*view.R);
+        x.stroke();
+      }
+      x.setLineDash([]); x.globalAlpha = 1;
+    }
+
+    // links
+    var lc = alg ? cInv : cMut;
+    for(var i=0;i<L.links.length;i++){
+      var ln = L.links[i];
+      x.strokeStyle = lc; x.globalAlpha = alg ? 0.72 : 0.5; x.lineWidth = 0.7+ln.w*0.55;
+      x.beginPath(); x.moveTo(ln.a.x, ln.a.y); x.lineTo(ln.b.x, ln.b.y); x.stroke();
+    }
+    x.globalAlpha = 1;
+
+    // nodes
+    for(var j=0;j<L.nodes.length;j++){
+      var nd = L.nodes[j];
+      x.fillStyle = nd.d >= 2 ? (alg?cInv:cMut) : cFaint;
+      x.beginPath(); x.arc(nd.x, nd.y, nd.d>=2?2.1:1.5, 0, TAU); x.fill();
+    }
+
+    // particles
+    for(var q=0;q<P.length;q++){
+      var pt = P[q];
+      x.strokeStyle = pt.sig ? cPor : cFaint;
+      x.globalAlpha = pt.sig ? 0.8 : 0.45; x.lineWidth = pt.sig ? 1.4 : 1;
+      x.beginPath(); x.moveTo(pt.px, pt.py); x.lineTo(pt.x, pt.y); x.stroke();
+    }
+    x.globalAlpha = 1;
+
+    // pulses
+    for(var f=0;f<FX.length;f++){
+      var e = FX[f];
+      x.strokeStyle = e.kind==="rejected" ? cWarn : (e.kind==="placed" ? cInv : cPor);
+      x.globalAlpha = clamp(1-e.r/e.max, 0, 1)*0.85; x.lineWidth = 1.2;
+      x.beginPath(); x.arc(e.x, e.y, e.r, 0, TAU); x.stroke();
+    }
+    x.globalAlpha = 1;
+    x.restore();
+  }
+
+  function drawChart(){
+    var cv = $("chart"), dpr = Math.min(window.devicePixelRatio||1,2);
+    var w = cv.clientWidth||900, h = 170;
+    if(cv.width !== Math.round(w*dpr)){ cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr); }
+    var x = cv.getContext("2d");
+    x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h);
+    x.fillStyle = cssVar("--surface"); x.fillRect(0,0,w,h);
+    var padL=8,padR=8,padT=16,padB=14, iw=w-padL-padR, ih=h-padT-padB, n=hist.length;
+    if(!n) return;
+    var sx = iw/Math.max(n-1,1), Y = function(v){ return padT+ih-clamp(v,0,1)*ih; };
+    for(var i=0;i<n;i++){
+      x.fillStyle = hist[i].c==="algorithm" ? cssVar("--inverted-soft") : cssVar("--porous-soft");
+      x.fillRect(padL+i*sx, padT-12, Math.max(sx,1)+0.5, 9);
+    }
+    x.strokeStyle = cssVar("--rule"); x.lineWidth = 1;
+    [0,0.5,1].forEach(function(g){ x.beginPath(); x.moveTo(padL,Y(g)+0.5); x.lineTo(w-padR,Y(g)+0.5); x.stroke(); });
+    var line = function(key,color,width,dash){
+      x.beginPath(); x.strokeStyle = color; x.lineWidth = width; x.setLineDash(dash||[]);
+      for(var i=0;i<n;i++){ var px=padL+i*sx, py=Y(hist[i][key]); if(i===0)x.moveTo(px,py); else x.lineTo(px,py); }
+      x.stroke(); x.setLineDash([]);
+    };
+    line("v", cssVar("--ink-2"), 1.2, [3,3]);
+    line("w", cssVar("--porous"), 1.7);
+    line("m", cssVar("--inverted"), 2.2);
+    x.fillStyle = cssVar("--inverted");
+    x.beginPath(); x.arc(padL+(n-1)*sx, Y(hist[n-1].m), 3, 0, TAU); x.fill();
+  }
+
+  // ---------- panels ----------
+  var FLAGS = [
+    { id:"stall", name:"The stall", text:"Compute at zero. Nothing arrives, so nothing is generated, selected or deposited. The only failure that answers to force.",
+      on:function(p){ return p.c < 3; } },
+    { id:"drift", name:"Neutral drift", text:"Arrivals in volume carrying no signal. Nodes accumulate and almost nothing links, so the lattice spreads without ever bearing load.",
+      on:function(p){ return p.g < 0.1 && p.c >= 3; } },
+    { id:"porous", name:"Permanent porosity", text:"Arrivals pass straight through. Selection runs and nothing is retained as linkage, so every cycle starts over.",
+      on:function(p){ return p.r < 0.1 && p.c >= 3; } },
+    { id:"reach", name:"Reach-only", text:"All deposit going to scope. The lattice sprawls outward with single links and the internal side never gains weight.",
+      on:function(p){ return p.a < 0.12; } },
+    { id:"tighten", name:"Tighten-only", text:"All deposit going to resolution. Dense, genuinely load-bearing, and too small for much to arrive and be placed.",
+      on:function(p){ return p.a > 0.88; } },
+    { id:"premature", name:"Premature custody", text:"The lattice is rejecting off-axis arrivals on axes the field never ratified. Correction is shut off, so the error cannot be found from inside.",
+      on:function(){ return S.custody==="algorithm" && S.valid < 0.5; } },
+    { id:"decay", name:"Custody decaying", text:"The field axis is swinging away from the lattice axis faster than it is being re-fitted. Rejections rise and the subsidy drains.",
+      on:function(p){ return S.custody==="algorithm" && S.valid>=0.5 && S.valid<0.78 && p.v>0.35; } },
+    { id:"funded", name:"Funded loop", text:"Custody held on ratified axes. Arrivals come in pre-aligned to the lattice, cost less to place, and thicken it faster.",
+      ok:true, on:function(){ return S.custody==="algorithm" && S.valid>=0.6 && S.pre>0.3; } }
+  ];
+
+  function renderFlags(p){
+    var host = $("flags"), active = [];
+    FLAGS.forEach(function(f){ if(f.on(p)) active.push(f); });
+    if(!active.length){
+      host.innerHTML = '<div class="flag idle"><b>Accumulating</b>Custody sits with the field. The lattice is being ruled on and deposited into — the only state in which weight accumulates at all.</div>';
+      return;
+    }
+    host.innerHTML = active.map(function(f){
+      return '<div class="flag '+(f.ok?"ok":"on")+'"><b>'+f.name+'</b>'+f.text+'</div>';
+    }).join("");
+  }
+
+  function renderPanels(){
+    var p = params(), alg = S.custody === "algorithm";
+    $("badge").className = "custody-badge " + (alg?"is-inverted":"is-porous");
+    $("badgeWho").textContent = alg ? "ALGORITHM" : "INTERFACE";
+
+    $("termI").classList.toggle("holds", !alg);
+    $("termA").classList.toggle("holds", alg);
+    $("chipI").hidden = alg; $("chipA").hidden = !alg;
+    $("roleI").textContent = alg ? "Supplies · raw material only" : "Selector · rules on arrivals";
+    $("roleA").textContent = alg ? "Selector · tests and places" : "Record · admits and is rewritten";
+    $("noteI").textContent = alg
+      ? "Still decides what can arrive, but no longer where it lands. Its spread is narrowing onto the lattice's axes."
+      : "The field's axis and spread decide where particles come from and which ones carry signal.";
+    $("noteA").textContent = alg
+      ? "Holds selection. Growth snaps to its own axes and off-axis arrivals are turned away rather than absorbed."
+      : "The lattice itself. Its reach times its load-bearing linkage is the weight on the internal side.";
+
+    $("stageState").innerHTML =
+      '<b style="color:'+(alg?"var(--inverted)":"var(--porous)")+'">'+(alg?"LATTICE SELECTS":"FIELD SELECTS")+'</b><br>'+
+      (alg ? "growth on own axes · off-axis turned away" : "accretes where it lands · axes re-fitted");
+
+    $("wiVal").textContent = met.mass.toFixed(2);
+    $("weVal").textContent = arrivingWeight().toFixed(2);
+    $("wiBar").style.width = clamp(met.mass,0,1)*100+"%";
+    $("weBar").style.width = clamp(arrivingWeight(),0,1)*100+"%";
+
+    $("tCycle").textContent = S.t;
+    $("tNodes").textContent = L.nodes.length;
+    $("tScope").textContent = Math.round(met.reach*100)+"%";
+    $("tLink").textContent = Math.round(met.linkage*100)+"%";
+    $("tMass").textContent = met.mass.toFixed(2);
+    $("tValid").textContent = Math.round(S.valid*100)+"%";
+    $("tPre").textContent = Math.round(S.pre*100)+"%";
+    $("tPayer").textContent = alg ? "FIELD" : "SYSTEM";
+    $("tPayer").style.color = alg ? "var(--inverted)" : "var(--porous)";
+    $("tPR").textContent = S.placed+" / "+S.rejected;
+
+    $("log").innerHTML = logRows.map(function(r){
+      return '<div><span class="cyc">'+String(r.t).padStart(4,"0")+'</span><span class="what k-'+r.kind+'">'+r.text+'</span></div>';
+    }).join("") || '<div><span class="cyc">0000</span><span class="what k-rejected">no cycles run</span></div>';
+
+    renderFlags(p);
+    drawChart();
+  }
+
+  // ---------- loop ----------
+  function physics(dt){
+    var p = params(), speed = +$("speed").value;
+    var vel = 68*(speed/9);
+    for(var i=P.length-1;i>=0;i--){
+      var pt = P[i];
+      if(pt.dead){
+        if(pt.dead===3){ // rejected: deflect back out
+          pt.px = pt.x; pt.py = pt.y;
+          var a = Math.atan2(pt.y,pt.x);
+          pt.x += Math.cos(a)*vel*dt*1.3; pt.y += Math.sin(a)*vel*dt*1.3;
+          pt.life += dt;
+          if(pt.life > 0.6) P.splice(i,1);
+        } else P.splice(i,1);
+        continue;
+      }
+      pt.px = pt.x; pt.py = pt.y;
+      var ang = Math.atan2(-pt.y,-pt.x);
+      pt.x += Math.cos(ang)*vel*dt; pt.y += Math.sin(ang)*vel*dt;
+      pt.life += dt;
+      // only test against the structure once the particle is near its outer edge
+      var dc2 = pt.x*pt.x + pt.y*pt.y, gate = met.rMax + SPACING*1.7;
+      if(dc2 < gate*gate){
+        var near = nearestNode(pt.x, pt.y);
+        if(near.d < SPACING*0.95 || dc2 < 16){ absorb(pt); continue; }
+      }
+      if(pt.life > 14) P.splice(i,1);
+    }
+    for(var f=FX.length-1;f>=0;f--){
+      FX[f].r += 34*dt;
+      if(FX[f].r > FX[f].max) FX.splice(f,1);
+    }
+    // spawn
+    var want = (p.c/100)*7.5*(speed/9);
+    spawnAcc += want*dt;
+    while(spawnAcc >= 1){ if(P.length < 260) spawn(view); spawnAcc -= 1; }
+  }
+  var spawnAcc = 0;
+
+  function frame(ts){
+    if(!lastTs) lastTs = ts;
+    var dt = Math.min((ts-lastTs)/1000, 0.05); lastTs = ts;
+    if(running){
+      physics(dt);
+      cycAcc += dt*(+$("speed").value);
+      var guard = 0;
+      while(cycAcc >= 1 && guard < 20){ cycle(); cycAcc -= 1; guard++; }
+      measure();
+      drawStage();
+      renderPanels();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- wiring ----------
+  function labels(){
+    var p = params();
+    $("computeV").textContent = p.c;
+    $("gradV").textContent = Math.round(p.g*100)+"%";
+    $("volV").textContent = Math.round(p.v*100)+"%";
+    $("retV").textContent = Math.round(p.r*100)+"%";
+    $("allocV").textContent = Math.round((1-p.a)*100)+" / "+Math.round(p.a*100);
+    $("speedV").textContent = $("speed").value;
+  }
+  ["compute","grad","vol","ret","alloc","speed"].forEach(function(id){
+    $(id).addEventListener("input", function(){ labels(); renderPanels(); });
+  });
+
+  function setPolicy(p){
+    policy = p;
+    Array.prototype.forEach.call($("policy").querySelectorAll("button"), function(b){
+      b.setAttribute("aria-pressed", String(b.dataset.p === p));
+    });
+    $("policyNote").textContent = POLICIES[p].note;
+    S.locked = false; S.returning = false; S.nextReturn = S.t+55; S.lostOnce = false;
+    renderPanels();
+  }
+  $("policy").addEventListener("click", function(e){
+    var b = e.target.closest("button[data-p]"); if(b) setPolicy(b.dataset.p);
+  });
+  $("runBtn").addEventListener("click", function(){
+    running = !running; this.textContent = running ? "Pause" : "Run"; lastTs = 0; cycAcc = 0;
+  });
+  $("stepBtn").addEventListener("click", function(){
+    running = false; $("runBtn").textContent = "Run";
+    for(var i=0;i<14;i++) physics(1/60);
+    cycle(); measure(); drawStage(); renderPanels();
+  });
+  $("resetBtn").addEventListener("click", function(){
+    fresh(); warm(90); measure(); drawStage(); renderPanels();
+  });
+  $("seizeBtn").addEventListener("click", function(){
+    S.seized = true; S.locked = true; S.lostOnce = false;
+    setCustody("algorithm","Selector seized by hand — custody taken ahead of the deposit.", S.valid<0.5);
+    renderPanels();
+  });
+
+  var SCENARIOS = [
+    { n:"Funded loop", d:"Balanced deposit on stable ground. Custody is earned, then the field starts arriving pre-aligned.",
+      s:{compute:55,grad:70,vol:22,ret:70,alloc:50}, p:"weighed", warm:150 },
+    { n:"The stall", d:"Compute at zero. Everything else is set correctly and nothing happens.",
+      s:{compute:1,grad:70,vol:22,ret:70,alloc:50}, p:"weighed", warm:40 },
+    { n:"Neutral drift", d:"Maximum arrivals carrying no signal. Nodes everywhere, almost no links.",
+      s:{compute:95,grad:2,vol:22,ret:70,alloc:50}, p:"weighed", warm:150 },
+    { n:"Permanent porosity", d:"Arrivals pass through. Selection runs and nothing is retained.",
+      s:{compute:85,grad:75,vol:22,ret:4,alloc:50}, p:"weighed", warm:150 },
+    { n:"Reach-only", d:"All scope, no resolution. A sprawling thread that never bears load.",
+      s:{compute:70,grad:70,vol:22,ret:70,alloc:0}, p:"weighed", warm:170 },
+    { n:"Tighten-only", d:"All resolution, no scope. Real authority over a territory too small to invoice.",
+      s:{compute:70,grad:70,vol:22,ret:70,alloc:100}, p:"weighed", warm:170 },
+    { n:"Premature custody", d:"Seizes selection before the deposit, then rejects the arrivals that would have corrected it.",
+      s:{compute:60,grad:70,vol:35,ret:70,alloc:50}, p:"sequential", seize:true, warm:25 },
+    { n:"Incumbent decay", d:"Custody locked for good while the field axis swings away. Watch rejections climb.",
+      s:{compute:65,grad:70,vol:85,ret:70,alloc:50}, p:"sequential", warm:160 },
+    { n:"Iterative seal", d:"Placement keeps improving, the axes are never re-ruled. Excellent at an unratified geometry.",
+      s:{compute:70,grad:70,vol:45,ret:70,alloc:55}, p:"iterative", warm:160 },
+    { n:"Bought returns", d:"Custody handed back on purpose at bounded intervals, out of banked density.",
+      s:{compute:70,grad:70,vol:45,ret:70,alloc:55}, p:"evolutionary", warm:160 }
+  ];
+  $("chips").innerHTML = SCENARIOS.map(function(s,i){
+    return '<button class="chip" data-i="'+i+'"><b>'+s.n+'</b><span>'+s.d+'</span></button>';
+  }).join("");
+  $("chips").addEventListener("click", function(e){
+    var b = e.target.closest("button[data-i]"); if(!b) return;
+    var sc = SCENARIOS[+b.dataset.i];
+    Object.keys(sc.s).forEach(function(k){ $(k).value = sc.s[k]; });
+    fresh(); labels(); setPolicy(sc.p);
+    if(sc.seize){
+      warm(20);
+      S.seized = true; S.locked = true; S.custody = "algorithm";
+      logit("bad","Selector seized early — almost nothing has been deposited.");
+    } else warm(sc.warm||120);
+    running = true; $("runBtn").textContent = "Pause"; lastTs = 0; cycAcc = 0;
+    measure(); drawStage(); renderPanels();
+  });
+
+  function warm(frames){
+    for(var i=0;i<frames;i++){
+      physics(1/40);
+      if(i % 4 === 0) cycle();
+    }
+    logRows = logRows.slice(0,5);
+  }
+
+  window.addEventListener("resize", function(){ sizeStage(); drawStage(); drawChart(); });
+
+  fresh();
+  sizeStage();
+  labels();
+  setPolicy("weighed");
+  warm(150);
+  measure();
+  drawStage();
+  renderPanels();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
